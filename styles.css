@@ -131,10 +131,9 @@ body {
 .primary {
   background: linear-gradient(90deg, var(--primary), var(--primary-dark));
   color: #fff;
-  font-size: 2rem;
   border: none;
   padding: 7px 15px;
-  border-radius: 100px;
+  border-radius: 10px;
   font-weight: bold;
   cursor: pointer;
   box-shadow: 0 4px 10px rgba(0,0,0,0.25);

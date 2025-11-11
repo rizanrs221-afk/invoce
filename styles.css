@@ -4,8 +4,8 @@
 
 /* ---- Root Colors ---- */
 :root {
-  --primary: #ff7a00;
-  --primary-dark: #e56700;
+  --primary: #24cf41;
+  --primary-dark: #088433;
   --accent: #ffd280;
   --bg: #f4f7fb;
   --card-bg: #ffffff;
@@ -370,7 +370,7 @@ button {
 }
 
 #logoutBtn:hover {
-  background: linear-gradient(135deg, #ff6600, #e55b00);
+  background: linear-gradient(135deg, #05960a, #30eb55);
   box-shadow: 0 6px 15px rgba(255, 102, 0, 0.5);
   transform: scale(1.05);
 }

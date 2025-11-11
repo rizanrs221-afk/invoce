@@ -204,74 +204,83 @@ txnsList.addEventListener('click', e => {
 
 monthSelect.addEventListener('change', render);
 
+// ======== EXPORT / SHARE PDF (fixed: no BIN) ========
+exportCsvBtn.addEventListener("click", async () => {
+  try {
+    // get transactions for selected month
+    const key = loadMonthKeyFromInput();
+    const txns = readTxns(key);
+    if (!txns.length) {
+      alert('அந்த மாதத்தில் பதிவு இல்லை');
+      return;
+    }
 
-// ======== SHARE AS PDF (Clean & Formatted) =========
-document.getElementById("exportCsv").addEventListener("click", async () => {
-  const { jsPDF } = window.jspdf;
-  const doc = new jsPDF();
+    // prepare text lines
+    const reportTitle = `${monthSelect.value} - Income & Expense Report`;
+    let lines = [];
+    let totalIncome = 0, totalExpense = 0;
 
-  // Title (Bold)
-  doc.setFont("helvetica", "bold");
-  const reportTitle = `${monthSelect.value} - Income & Expense Report`;
-  doc.text(reportTitle, 10, 15);
-
-  // Body (Normal)
-  doc.setFont("helvetica", "normal");
-  let lines = [];
-
-  const txns = JSON.parse(localStorage.getItem("transactions") || "[]");
-  const month = monthSelect.value;
-  const monthTxns = txns.filter(t => t.date.startsWith(month));
-
-  let totalIncome = 0;
-  let totalExpense = 0;
-
-  monthTxns.forEach((t, i) => {
-    lines.push(
-      `${i + 1}. ${t.date} | ${t.type.toUpperCase()} | ${t.category || "-"} | ${t.amount} | ${t.note || ""}`
-    );
-    if (t.type === "income") totalIncome += Number(t.amount);
-    else totalExpense += Number(t.amount);
-  });
-
-  const balance = totalIncome - totalExpense;
-
-  lines.push("");
-  lines.push(`Total Income: ${totalIncome}`);
-  lines.push(`Total Expense: ${totalExpense}`);
-  lines.push(`Balance: ${balance}`);
-
-  const finalText = lines.join("\n").trimStart();
-
-  // Proper placement (avoid header overlap)
-  doc.text(finalText, 10, 25, { maxWidth: 180 });
-
-  // File name with date
-  const fileName = `Report-${monthSelect.value}.pdf`;
-  doc.save(fileName);
-
-  // Optional — Share via native share
-  if (navigator.share) {
-    const pdfBlob = doc.output("blob");
-    const file = new File([pdfBlob], fileName, { type: "application/pdf" });
-    await navigator.share({
-      title: "Income & Expense Report",
-      files: [file],
+    txns.slice().sort((a,b)=> new Date(a.date) - new Date(b.date)).forEach((t, i) => {
+      lines.push(`${i + 1}. ${t.date} | ${t.type.toUpperCase()} | ${t.category || '-'} | ${t.amount} | ${t.note || ''}`);
+      if (t.type === 'income') totalIncome += Number(t.amount);
+      else totalExpense += Number(t.amount);
     });
+
+    lines.push('');
+    lines.push(`Total Income: ${totalIncome}`);
+    lines.push(`Total Expense: ${totalExpense}`);
+    lines.push(`Balance: ${totalIncome - totalExpense}`);
+
+    const finalText = lines.join('\n').trimStart();
+
+    // create PDF with jsPDF
+    const { jsPDF } = window.jspdf; // make sure jspdf is loaded in HTML
+    const doc = new jsPDF({ unit: 'mm', format: 'a4', compress: true });
+
+    // Title (bold)
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(14);
+    doc.text(reportTitle, 10, 15);
+
+    // Body (normal)
+    doc.setFont("helvetica", "normal");
+    doc.setFontSize(11);
+    // put body starting a bit lower to avoid overlap
+    doc.text(finalText, 10, 25, { maxWidth: 190, align: 'left' });
+
+    // Export as Blob (PDF) — correct MIME
+    const pdfBlob = doc.output("blob"); // Blob type: application/pdf
+    const fileName = `Report-${monthSelect.value}.pdf`;
+    const file = new File([pdfBlob], fileName, { type: "application/pdf" });
+
+    // Try native share with files (mobile)
+    if (navigator.canShare && navigator.canShare({ files: [file] })) {
+      try {
+        await navigator.share({
+          title: reportTitle,
+          text: `Report for ${monthSelect.value}`,
+          files: [file]
+        });
+        return;
+      } catch (err) {
+        console.warn("Share failed or cancelled:", err);
+        // continue to fallback download
+      }
+    }
+
+    // Fallback: download the PDF (works everywhere)
+    const url = URL.createObjectURL(pdfBlob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    alert("PDF downloaded (your device/browser may not support direct file sharing).");
+
+  } catch (err) {
+    console.error("Export/Share error:", err);
+    alert("பிழை: PDF உருவாக்கம் அல்லது பகிர்தல் தோல்வியடைந்தது.");
   }
 });
-
-// ===============================
-// TOGGLE FORM
-// ===============================
-function toggleForm(forceOpen) {
-  const isHidden = entryForm.style.display === 'none';
-  const open = typeof forceOpen === 'boolean' ? forceOpen : isHidden;
-  entryForm.style.display = open ? 'block' : 'none';
-  toggleFormBtn.textContent = open ? '-' : '+';
-  toggleFormBtn.setAttribute('aria-expanded', String(open));
-}
-
-toggleFormBtn.addEventListener('click', () => toggleForm());
-toggleForm(true);
-render();

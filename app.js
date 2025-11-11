@@ -1,3 +1,12 @@
+function generatePdf(text, fileName) {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
+  const lines = doc.splitTextToSize(text, 180);
+  doc.text(lines, 10, 10);
+  const blob = doc.output('blob');
+  const file = new File([blob], fileName, { type: 'application/pdf' });
+  return file;
+}
 
   const correctEmail = "aysharizan2011@gmail.com";
   const correctPassword = "aysha1128";
@@ -180,7 +189,6 @@
 
   monthSelect.addEventListener('change', render);
 
-
 exportCsvBtn.addEventListener('click', async () => {
   const key = loadMonthKeyFromInput();
   const txns = readTxns(key);
@@ -190,46 +198,35 @@ exportCsvBtn.addEventListener('click', async () => {
     return;
   }
 
-  // Prepare CSV content
-  const rows = ['id,date,type,category,amount,note'];
-  txns.forEach(t =>
-    rows.push([
-      t.id,
-      t.date,
-      t.type,
-      `"${(t.category || '').replace(/"/g, '""')}"`,
-      t.amount,
-      `"${(t.note || '').replace(/"/g, '""')}"`
-    ].join(','))
-  );
-  const csv = rows.join('\n');
+  // Prepare Text for PDF
+  let text = `📅 ${monthSelect.value} மாதத்தின் வரவு-செலவு விவரம்\n\n`;
+  let totalIncome = 0, totalExpense = 0;
 
-  // Create Blob file
-  const blob = new Blob([csv], { type: 'text/csv' });
-  const fileName = `${monthSelect.value || new Date().toISOString().slice(0, 7)}_ledger.csv`;
-  const file = new File([blob], fileName, { type: 'text/csv' });
+  txns.forEach((t, i) => {
+    const line = `${i + 1}. ${t.date} | ${t.type === 'income' ? 'வரவு' : 'செலவு'} | ${t.category || '-'} | ${t.amount} | ${t.note || ''}`;
+    text += line + '\n';
+    if (t.type === 'income') totalIncome += Number(t.amount);
+    else totalExpense += Number(t.amount);
+  });
 
-  // Try Web Share API (works on most mobile browsers)
+  text += `\nமொத்த வரவு: ${totalIncome}\nமொத்த செலவு: ${totalExpense}\nமீதம்: ${totalIncome - totalExpense}\n`;
+
+  const file = generatePdf(text, `${monthSelect.value}_ledger.pdf`);
+
   if (navigator.canShare && navigator.canShare({ files: [file] })) {
-    try {
-      await navigator.share({
-        title: 'Ledger Report',
-        text: `${monthSelect.value} மாதத்தின் வரவு-செலவு விவரம்.`,
-        files: [file],
-      });
-    } catch (err) {
-      console.warn('User canceled sharing:', err);
-    }
+    await navigator.share({
+      title: 'Ledger Report',
+      text: `${monthSelect.value} மாதத்தின் வரவு-செலவு விவரம்`,
+      files: [file],
+    });
   } else {
-    // Fallback to normal download
-    const url = URL.createObjectURL(blob);
+    // Fallback: download
+    const url = URL.createObjectURL(file);
     const a = document.createElement('a');
     a.href = url;
-    a.download = fileName;
-    document.body.appendChild(a);
+    a.download = file.name;
     a.click();
-    a.remove();
     URL.revokeObjectURL(url);
-    alert('Your browser does not support direct sharing. CSV downloaded instead.');
+    alert('PDF downloaded instead of shared.');
   }
 });

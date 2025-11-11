@@ -204,48 +204,60 @@ txnsList.addEventListener('click', e => {
 
 monthSelect.addEventListener('change', render);
 
-// ===============================
-// EXPORT AS PDF / SHARE
-// ===============================
-exportCsvBtn.addEventListener('click', async () => {
-  const key = loadMonthKeyFromInput();
-  const txns = readTxns(key);
 
-  if (!txns.length) {
-    alert('No records found for this month.');
-    return;
-  }
+// ======== SHARE AS PDF (Clean & Formatted) =========
+document.getElementById("exportCsv").addEventListener("click", async () => {
+  const { jsPDF } = window.jspdf;
+  const doc = new jsPDF();
 
-  // Prepare Text for PDF
-  let text = `📅 ${monthSelect.value} - Income & Expense Report\n\n`;
-  let totalIncome = 0, totalExpense = 0;
+  // Title (Bold)
+  doc.setFont("helvetica", "bold");
+  const reportTitle = `${monthSelect.value} - Income & Expense Report`;
+  doc.text(reportTitle, 10, 15);
 
-  txns.forEach((t, i) => {
-    const line = `${i + 1}. ${t.date} | ${t.type === 'income' ? 'INCOME' : 'EXPENSE'} | ${t.category || '-'} | ${t.amount} | ${t.note || ''}`;
-    text += line + '\n';
-    if (t.type === 'income') totalIncome += Number(t.amount);
+  // Body (Normal)
+  doc.setFont("helvetica", "normal");
+  let lines = [];
+
+  const txns = JSON.parse(localStorage.getItem("transactions") || "[]");
+  const month = monthSelect.value;
+  const monthTxns = txns.filter(t => t.date.startsWith(month));
+
+  let totalIncome = 0;
+  let totalExpense = 0;
+
+  monthTxns.forEach((t, i) => {
+    lines.push(
+      `${i + 1}. ${t.date} | ${t.type.toUpperCase()} | ${t.category || "-"} | ${t.amount} | ${t.note || ""}`
+    );
+    if (t.type === "income") totalIncome += Number(t.amount);
     else totalExpense += Number(t.amount);
   });
 
-  text += `\nTotal Income: ${totalIncome}\nTotal Expense: ${totalExpense}\nBalance: ${totalIncome - totalExpense}\n`;
+  const balance = totalIncome - totalExpense;
 
-  const file = generatePdf(text, `${monthSelect.value}_ledger.pdf`);
+  lines.push("");
+  lines.push(`Total Income: ${totalIncome}`);
+  lines.push(`Total Expense: ${totalExpense}`);
+  lines.push(`Balance: ${balance}`);
 
-  if (navigator.canShare && navigator.canShare({ files: [file] })) {
+  const finalText = lines.join("\n").trimStart();
+
+  // Proper placement (avoid header overlap)
+  doc.text(finalText, 10, 25, { maxWidth: 180 });
+
+  // File name with date
+  const fileName = `Report-${monthSelect.value}.pdf`;
+  doc.save(fileName);
+
+  // Optional — Share via native share
+  if (navigator.share) {
+    const pdfBlob = doc.output("blob");
+    const file = new File([pdfBlob], fileName, { type: "application/pdf" });
     await navigator.share({
-      title: 'Ledger Report',
-      text: `${monthSelect.value} - Monthly Ledger Report`,
+      title: "Income & Expense Report",
       files: [file],
     });
-  } else {
-    // Fallback: download
-    const url = URL.createObjectURL(file);
-    const a = document.createElement('a');
-    a.href = url;
-    a.download = file.name;
-    a.click();
-    URL.revokeObjectURL(url);
-    alert('PDF downloaded instead of shared.');
   }
 });
 

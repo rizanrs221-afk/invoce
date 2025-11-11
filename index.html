@@ -4,13 +4,13 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>வரவு-செலவு கணக்கு புத்தகம்</title>
+  <title>Account Book</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
    <div id="loginScreen" class="login-screen">
       <div class="login-box">
-        <div class="login-header">
+        <div  class="login-header">
           <div class="logo">❤️</div>
           <h2>Welcome!</h2>
           <p>Enter your E-mail and password to continue</p>
@@ -39,17 +39,17 @@
       <!-- ====== HEADER SECTION ====== -->
 <header class="invoice-header">
   <div class="brand">
-    <div class="logo-box">
-      <div class="logo-shape"></div>
+   <div class="logo-box">
+      <div> <img src="logo.jpg" class="logo-shape"/></div>
       <div class="brand-text">
         <h1>AYSH_LYNE</h1>
-        <p>Join with us 0788878600</p>
+        <p>Created by ❤️ Aysha_Rizan</p>
       </div>
     </div>
   </div>
 
   <div class="invoice-title">
-    <h2>INVOICE</h2>
+    <h2>Expense Tracker</h2>
   </div>
 
       <button id="toggleForm" aria-expanded="true" class="primary">+</button>
@@ -58,38 +58,38 @@
     <section id="entryForm" class="card form-card">
       <form id="txnForm">
         <div class="row">
-          <label for="date">தேதி</label>
+          <label for="date">Date</label>
           <input id="date" name="date" type="date" required>
         </div>
 
-        <div class="row two">
+        <div class="row-two">
           <div>
-            <label for="type">வகை</label>
+            <label for="type">Type</label>
             <select id="type" name="type" required>
-              <option value="income">வரவு</option>
-              <option value="expense">செலவு</option>
+              <option value="income">income</option>
+              <option value="expense">Expense</option>
             </select>
           </div>
 
           <div>
-            <label for="amount">தொகை</label>
+            <label for="amount">Amount</label>
             <input id="amount" name="amount" type="number" min="0" step="0.01" placeholder="0.00" required>
           </div>
         </div>
 
         <div class="row">
-          <label for="category">வகை (category)</label>
-          <input id="category" name="category" type="text" placeholder="உதா: சம்பளம், உணவு, போக்குவரத்து">
+          <label for="category">Type (category)</label>
+          <input id="category" name="category" type="text" placeholder="Exampe: salary, food, transport">
         </div>
 
         <div class="row">
-          <label for="note">குறிப்பு</label>
-          <input id="note" name="note" type="text" placeholder="பின்புலக் குறிப்புகள்">
+          <label for="note">Notes</label>
+          <input id="note" name="note" type="text" placeholder="Specific Notes">
         </div>
 
         <div class="row buttons">
-          <button type="submit" class="primary">சேமி</button>
-          <button type="button" id="resetForm">அழி</button>
+          <button type="submit" class="primary">Save</button>
+          <button type="button" id="resetForm">Clear</button>
         </div>
       </form>
     </section>
@@ -97,35 +97,35 @@
     <section class="card summary-card">
       <div class="summary-row">
         <div>
-          <div class="label">மொத்த வரவு</div>
+          <div class="label">Total IC</div>
           <div id="totalIncome" class="value">0</div>
         </div>
         <div>
-          <div class="label">மொத்த செலவு</div>
+          <div class="label">Total EP</div>
           <div id="totalExpense" class="value">0</div>
         </div>
         <div>
-          <div class="label">மீதி</div>
+          <div class="label">Balance</div>
           <div id="balance" class="value">0</div>
         </div>
       </div>
 
       <div class="filters">
-        <label for="monthSelect">மாதம்</label>
+        <label for="monthSelect">Month</label>
         <input id="monthSelect" type="month">
         <button id="exportCsv" title="Export current month as CSV">Export</button>
       </div>
     </section>
 
     <section class="card list-card">
-      <h2>பதிவுகள்</h2>
+      <h2>Records</h2>
       <div id="txnsList" class="txnsList">
         <!-- transactions injected here -->
       </div>
     </section>
 
     <footer class="smart-footer">
-      <small>Offline-friendly — உங்கள் உலாவியில் சேமிக்கப்படும்</small>
+      <small>Offline-friendly — This will Save on Your Storage</small>
     </footer>
   </main>
 

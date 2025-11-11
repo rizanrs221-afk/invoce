@@ -180,32 +180,56 @@
 
   monthSelect.addEventListener('change', render);
 
-  exportCsvBtn.addEventListener('click', () => {
-    const key = loadMonthKeyFromInput();
-    const txns = readTxns(key);
-    if (!txns.length) return alert('அந்த மாதத்தில் பதிவு இல்லை');
-    const rows = ['id,date,type,category,amount,note'];
-    txns.forEach(t => rows.push([
-      t.id, t.date, t.type, `"${(t.category || '').replace(/"/g, '""')}"`,
-      t.amount, `"${(t.note || '').replace(/"/g, '""')}"`
-    ].join(',')));
-    const csv = rows.join('\n');
-    const blob = new Blob([csv], { type: 'text/csv' });
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement('a'); a.href = url;
-    a.download = `${monthSelect.value || new Date().toISOString().slice(0, 7)}_ledger.csv`;
-    document.body.appendChild(a); a.click(); a.remove(); URL.revokeObjectURL(url);
-  });
 
-  function toggleForm(forceOpen) {
-    const isHidden = entryForm.style.display === 'none';
-    const open = typeof forceOpen === 'boolean' ? forceOpen : isHidden;
-    entryForm.style.display = open ? 'block' : 'none';
-    toggleFormBtn.textContent = open ? '-' : '+';
-    toggleFormBtn.setAttribute('aria-expanded', String(open));
+exportCsvBtn.addEventListener('click', async () => {
+  const key = loadMonthKeyFromInput();
+  const txns = readTxns(key);
+
+  if (!txns.length) {
+    alert('அந்த மாதத்தில் பதிவு இல்லை');
+    return;
   }
 
-  toggleFormBtn.addEventListener('click', () => toggleForm());
-  toggleForm(true);
-  render();
+  // Prepare CSV content
+  const rows = ['id,date,type,category,amount,note'];
+  txns.forEach(t =>
+    rows.push([
+      t.id,
+      t.date,
+      t.type,
+      `"${(t.category || '').replace(/"/g, '""')}"`,
+      t.amount,
+      `"${(t.note || '').replace(/"/g, '""')}"`
+    ].join(','))
+  );
+  const csv = rows.join('\n');
 
+  // Create Blob file
+  const blob = new Blob([csv], { type: 'text/csv' });
+  const fileName = `${monthSelect.value || new Date().toISOString().slice(0, 7)}_ledger.csv`;
+  const file = new File([blob], fileName, { type: 'text/csv' });
+
+  // Try Web Share API (works on most mobile browsers)
+  if (navigator.canShare && navigator.canShare({ files: [file] })) {
+    try {
+      await navigator.share({
+        title: 'Ledger Report',
+        text: `${monthSelect.value} மாதத்தின் வரவு-செலவு விவரம்.`,
+        files: [file],
+      });
+    } catch (err) {
+      console.warn('User canceled sharing:', err);
+    }
+  } else {
+    // Fallback to normal download
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = fileName;
+    document.body.appendChild(a);
+    a.click();
+    a.remove();
+    URL.revokeObjectURL(url);
+    alert('Your browser does not support direct sharing. CSV downloaded instead.');
+  }
+});

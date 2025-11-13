@@ -217,6 +217,7 @@ function toggleForm(forceOpen) {
 toggleFormBtn.addEventListener('click', () => toggleForm());
 toggleForm(true);
 render();
+
 // --- PDF Export / Share code inside DOMContentLoaded ---
 window.addEventListener("DOMContentLoaded", () => {
   const { jsPDF } = window.jspdf;
@@ -252,15 +253,17 @@ window.addEventListener("DOMContentLoaded", () => {
     const fileName = `${monthSelect.value}_ledger.pdf`;
     const file = new File([blob], fileName, { type: 'application/pdf' });
 
-    // ✅ Try native share first
+    // ✅ Try native share first with explicit MIME type
     if (navigator.canShare && navigator.canShare({ files: [file] })) {
       try {
         await navigator.share({
           title: 'Ledger Report',
+          text: 'Please find the monthly ledger attached.',
           files: [file],
+          type: 'application/pdf' // 👈 Explicitly add type here
         });
       } catch (err) {
-        console.error('Share cancelled or failed:', err);
+        console.error('Share failed:', err);
         doc.save(fileName);
       }
     } 
@@ -269,5 +272,5 @@ window.addEventListener("DOMContentLoaded", () => {
       doc.save(fileName);
       alert('PDF downloaded instead of shared.');
     }
-  });
-});
+  }); // 👈 closes exportCsvBtn click listener
+}); // 👈 closes DOMContentLoaded listener

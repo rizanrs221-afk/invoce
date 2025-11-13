@@ -222,55 +222,60 @@ render();
 window.addEventListener("DOMContentLoaded", () => {
   const { jsPDF } = window.jspdf;
 
-  exportCsvBtn.addEventListener('click', async () => {
+  exportCsvBtn.addEventListener("click", async () => {
     const key = loadMonthKeyFromInput();
     const txns = readTxns(key);
     if (!txns.length) {
-      alert('No any Records in this month');
+      alert("No any Records in this month");
       return;
     }
 
-    // Build PDF text content
     let text = `📅 ${monthSelect.value} Month Ledger\n\n`;
     let totalIncome = 0, totalExpense = 0;
     txns.forEach((t, i) => {
-      const line = `${i + 1}. ${t.date} | ${t.type} | ${t.category || '-'} | ${t.amount} | ${t.note || ''}`;
-      text += line + '\n';
-      if (t.type === 'income') totalIncome += Number(t.amount);
+      const line = `${i + 1}. ${t.date} | ${t.type} | ${t.category || "-"} | ${t.amount} | ${t.note || ""}`;
+      text += line + "\n";
+      if (t.type === "income") totalIncome += Number(t.amount);
       else totalExpense += Number(t.amount);
     });
     text += `\nTotal Income: ${totalIncome}\nTotal Expense: ${totalExpense}\nBalance: ${totalIncome - totalExpense}\n`;
 
-    // Create PDF using jsPDF
     const doc = new jsPDF();
     doc.setFont("helvetica", "normal");
     doc.setFontSize(12);
     doc.text(text, 10, 20, { maxWidth: 180 });
 
-    // ✅ Properly build ArrayBuffer -> Blob -> File with correct MIME
-    const pdfData = doc.output('arraybuffer');
-    const blob = new Blob([pdfData], { type: 'application/pdf' });
-    const fileName = `${monthSelect.value}_ledger.pdf`;
-    const file = new File([blob], fileName, { type: 'application/pdf' });
+    // ✅ Properly encode as PDF Blob
+    const pdfBlob = new Blob([doc.output("blob")], { type: "application/pdf" });
 
-    // ✅ Try native share first with explicit MIME type
-    if (navigator.canShare && navigator.canShare({ files: [file] })) {
-      try {
+    // ✅ Android often ignores File type — so rename via File constructor
+    const fileName = `${monthSelect.value}_ledger.pdf`;
+    const pdfFile = new File([pdfBlob], fileName, { type: "application/pdf" });
+
+    try {
+      if (navigator.canShare && navigator.canShare({ files: [pdfFile] })) {
         await navigator.share({
-          title: 'Ledger Report',
-          text: 'Please find the monthly ledger attached.',
-          files: [file],
-          type: 'application/pdf' // 👈 Explicitly add type here
+          title: "Ledger Report",
+          text: "Please find the monthly ledger attached.",
+          files: [pdfFile],
         });
-      } catch (err) {
-        console.error('Share failed:', err);
-        doc.save(fileName);
+      } else {
+        const url = URL.createObjectURL(pdfBlob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = fileName;
+        a.click();
+        URL.revokeObjectURL(url);
+        alert("PDF downloaded instead of shared.");
       }
-    } 
-    // ✅ Fallback to download if share not supported
-    else {
-      doc.save(fileName);
-      alert('PDF downloaded instead of shared.');
+    } catch (err) {
+      console.error("Share failed:", err);
+      const url = URL.createObjectURL(pdfBlob);
+      const a = document.createElement("a");
+      a.href = url;
+      a.download = fileName;
+      a.click();
+      URL.revokeObjectURL(url);
     }
-  }); // 👈 closes exportCsvBtn click listener
-}); // 👈 closes DOMContentLoaded listener
+  });
+});

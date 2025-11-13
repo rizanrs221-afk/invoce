@@ -246,6 +246,7 @@ window.addEventListener("DOMContentLoaded", () => {
     doc.text(text, 10, 20, { maxWidth: 180 });
 
     const blob = doc.output('blob');
+    const pdfBlob = blob.slice(0, blob.size, 'application/pdf');
     const file = new File([blob], `${monthSelect.value}_ledger.pdf`, { type: 'application/pdf' });
 
     if (navigator.canShare && navigator.canShare({ files: [file] })) {

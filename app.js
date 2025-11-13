@@ -217,7 +217,6 @@ function toggleForm(forceOpen) {
 toggleFormBtn.addEventListener('click', () => toggleForm());
 toggleForm(true);
 render();
-
 // --- PDF Export / Share code inside DOMContentLoaded ---
 window.addEventListener("DOMContentLoaded", () => {
   const { jsPDF } = window.jspdf;
@@ -230,6 +229,7 @@ window.addEventListener("DOMContentLoaded", () => {
       return;
     }
 
+    // Build PDF text content
     let text = `📅 ${monthSelect.value} Month Ledger\n\n`;
     let totalIncome = 0, totalExpense = 0;
     txns.forEach((t, i) => {
@@ -240,27 +240,33 @@ window.addEventListener("DOMContentLoaded", () => {
     });
     text += `\nTotal Income: ${totalIncome}\nTotal Expense: ${totalExpense}\nBalance: ${totalIncome - totalExpense}\n`;
 
+    // Create PDF using jsPDF
     const doc = new jsPDF();
     doc.setFont("helvetica", "normal");
     doc.setFontSize(12);
     doc.text(text, 10, 20, { maxWidth: 180 });
 
-    const blob = doc.output('blob');
-    const pdfBlob = blob.slice(0, blob.size, 'application/pdf');
-    const file = new File([blob], `${monthSelect.value}_ledger.pdf`, { type: 'application/pdf' });
+    // ✅ Properly build ArrayBuffer -> Blob -> File with correct MIME
+    const pdfData = doc.output('arraybuffer');
+    const blob = new Blob([pdfData], { type: 'application/pdf' });
+    const fileName = `${monthSelect.value}_ledger.pdf`;
+    const file = new File([blob], fileName, { type: 'application/pdf' });
 
+    // ✅ Try native share first
     if (navigator.canShare && navigator.canShare({ files: [file] })) {
-      await navigator.share({
-        title: 'Ledger Report',
-        files: [file],
-      });
-    } else {
-      const url = URL.createObjectURL(file);
-      const a = document.createElement('a');
-      a.href = url;
-      a.download = file.name;
-      a.click();
-      URL.revokeObjectURL(url);
+      try {
+        await navigator.share({
+          title: 'Ledger Report',
+          files: [file],
+        });
+      } catch (err) {
+        console.error('Share cancelled or failed:', err);
+        doc.save(fileName);
+      }
+    } 
+    // ✅ Fallback to download if share not supported
+    else {
+      doc.save(fileName);
       alert('PDF downloaded instead of shared.');
     }
   });
